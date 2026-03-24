@@ -263,16 +263,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
       </div>
       <div class="resistance-row">
         <div class="resistance-label">Resistance Level</div>
-        <div class="resistance-btns" id="res-btns">
-          <button class="res-btn" onclick="setRes(1)">1</button>
-          <button class="res-btn" onclick="setRes(2)">2</button>
-          <button class="res-btn" onclick="setRes(3)">3</button>
-          <button class="res-btn" onclick="setRes(4)">4</button>
-          <button class="res-btn" onclick="setRes(5)">5</button>
-          <button class="res-btn" onclick="setRes(6)">6</button>
-          <button class="res-btn" onclick="setRes(7)">7</button>
-          <button class="res-btn" onclick="setRes(8)">8</button>
-        </div>
+        <div class="resistance-btns" id="res-btns"></div>
       </div>
       <div class="cardio-btn-row">
         <button class="btn-cardio-start" id="cardio-start-btn" onclick="startCardio()">Start</button>
@@ -611,9 +602,20 @@ function logHR() {
 
 // ─── CARDIO ───
 let selectedRes = null;
+function initResButtons() {
+  const container = document.getElementById('res-btns');
+  container.innerHTML = '';
+  for (let i=1; i<=25; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'res-btn';
+    btn.textContent = i;
+    btn.onclick = () => setRes(i);
+    container.appendChild(btn);
+  }
+}
 function setRes(v) {
   selectedRes = v;
-  document.querySelectorAll('.res-btn').forEach((b,i)=>b.classList.toggle('active',i+1===v));
+  document.querySelectorAll('.res-btn').forEach(b=>b.classList.toggle('active', parseInt(b.textContent)===v));
 }
 function startCardio() {
   cardioSess = {running:true, startTime:Date.now(), timerInt:null, resistance:selectedRes};
@@ -627,7 +629,8 @@ function startCardio() {
 function stopCardio() {
   clearInterval(cardioSess.timerInt);
   const dur = Math.floor((Date.now()-cardioSess.startTime)/1000);
-  const cal = parseInt(document.getElementById('cardio-cal').value)||0;
+  const rawCal = parseInt(document.getElementById('cardio-cal').value)||0;
+  const cal = Math.round(rawCal * 0.75); // Adjust to 75% — machine readings overestimate
   const hr = parseInt(document.getElementById('cardio-hr-input').value)||null;
   if (!state.cardioHistory) state.cardioHistory=[];
   state.cardioHistory.unshift({date:Date.now(), duration:dur, calories:cal, hr, resistance:selectedRes});
@@ -729,6 +732,7 @@ function renderHistory() {
 }
 
 // ─── INIT ───
+initResButtons();
 renderHome();
 </script>
 </body>
