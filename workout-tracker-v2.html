@@ -180,6 +180,22 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .vol-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
 .vol-bar-val { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); width: 50px; flex-shrink: 0; }
 
+/* WEEKLY GOALS */
+.week-goals { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.week-goal-ring { position: relative; flex-shrink: 0; }
+.week-goal-ring svg { transform: rotate(-90deg); }
+.week-goal-ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.week-goal-ring-val { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; line-height: 1; }
+.week-goal-ring-sub { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.week-goal-info { flex: 1; min-width: 0; }
+.week-goal-status { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+.week-goal-detail { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.week-goal-bar-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.week-goal-bar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); width: 52px; flex-shrink: 0; }
+.week-goal-bar-track { flex: 1; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.week-goal-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.week-goal-bar-count { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; width: 28px; flex-shrink: 0; text-align: right; }
+
 /* CALENDAR */
 .calendar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
 .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -946,7 +962,67 @@ function renderCalendar() {
     grid += `<div class="cal-day${isToday ? ' today' : ''}${hasWk ? ' has-workout' : ''}">${d}</div>`;
   }
 
-  container.innerHTML = `<div class="calendar-card">
+  // ─── Weekly Goals ───
+  const STRENGTH_GOAL = 2, CARDIO_GOAL = 5;
+  // Get current week (Mon–Sun)
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const weekStart = new Date(now); weekStart.setHours(0,0,0,0); weekStart.setDate(weekStart.getDate() - mondayOffset);
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const weekStrength = state.history.filter(s => s.date >= weekStart.getTime() && s.date < weekEnd.getTime()).length;
+  const weekCardio = (state.cardioHistory||[]).filter(s => s.date >= weekStart.getTime() && s.date < weekEnd.getTime()).length;
+  const totalDone = weekStrength + weekCardio;
+  const totalGoal = STRENGTH_GOAL + CARDIO_GOAL;
+  const pctTotal = Math.min(1, totalDone / totalGoal);
+
+  // Days left in week
+  const daysLeft = 7 - mondayOffset - (dayOfWeek === 0 ? 0 : 0);
+  const strengthLeft = Math.max(0, STRENGTH_GOAL - weekStrength);
+  const cardioLeft = Math.max(0, CARDIO_GOAL - weekCardio);
+  const allDone = strengthLeft === 0 && cardioLeft === 0;
+  let statusText, statusColor;
+  if (allDone) { statusText = 'Week Complete'; statusColor = 'var(--green)'; }
+  else if (mondayOffset < 3 || totalDone > 0) { statusText = 'On Track'; statusColor = 'var(--accent)'; }
+  else if (strengthLeft + cardioLeft > (7 - mondayOffset)) { statusText = 'Behind'; statusColor = 'var(--orange)'; }
+  else { statusText = 'On Track'; statusColor = 'var(--accent)'; }
+
+  const sPct = Math.min(1, weekStrength / STRENGTH_GOAL);
+  const cPct = Math.min(1, weekCardio / CARDIO_GOAL);
+  const ringSize = 56, strokeW = 5;
+  const radius = (ringSize - strokeW) / 2;
+  const circ = 2 * Math.PI * radius;
+  const sOffset = circ * (1 - sPct);
+  const cOffset = circ * (1 - cPct);
+
+  const weekGoalsHTML = `<div class="week-goals">
+    <div class="week-goal-ring">
+      <svg width="${ringSize}" height="${ringSize}">
+        <circle cx="${ringSize/2}" cy="${ringSize/2}" r="${radius}" fill="none" stroke="var(--surface3)" stroke-width="${strokeW}"/>
+        <circle cx="${ringSize/2}" cy="${ringSize/2}" r="${radius}" fill="none" stroke="${statusColor}" stroke-width="${strokeW}" stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - pctTotal)}" stroke-linecap="round"/>
+      </svg>
+      <div class="week-goal-ring-label">
+        <div class="week-goal-ring-val">${totalDone}/${totalGoal}</div>
+      </div>
+    </div>
+    <div class="week-goal-info">
+      <div class="week-goal-status" style="color:${statusColor}">${statusText}</div>
+      <div class="week-goal-detail">${allDone ? 'All goals hit this week!' : `${strengthLeft ? strengthLeft + ' strength' : ''}${strengthLeft && cardioLeft ? ' + ' : ''}${cardioLeft ? cardioLeft + ' cardio' : ''} left`}</div>
+      <div class="week-goal-bar-row">
+        <div class="week-goal-bar-label">Lift</div>
+        <div class="week-goal-bar-track"><div class="week-goal-bar-fill" style="width:${sPct*100}%;background:var(--accent);"></div></div>
+        <div class="week-goal-bar-count">${weekStrength}/${STRENGTH_GOAL}</div>
+      </div>
+      <div class="week-goal-bar-row">
+        <div class="week-goal-bar-label">Cardio</div>
+        <div class="week-goal-bar-track"><div class="week-goal-bar-fill" style="width:${cPct*100}%;background:var(--blue);"></div></div>
+        <div class="week-goal-bar-count">${weekCardio}/${CARDIO_GOAL}</div>
+      </div>
+    </div>
+  </div>`;
+
+  container.innerHTML = weekGoalsHTML + `<div class="calendar-card">
     <div class="cal-header">
       <button class="cal-nav-btn" onclick="calNav(-1)">◀</button>
       <div class="cal-month">${monthNames[calMonth]} ${calYear}</div>
