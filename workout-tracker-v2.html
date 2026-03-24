@@ -30,7 +30,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-thumb { background: var(--border); }
 
 /* NAV */
-.bottom-nav { display: flex; border-top: 1px solid var(--border); background: var(--bg); flex-shrink: 0; padding-bottom: var(--safe-bot); }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; display: flex; border-top: 1px solid var(--border); background: var(--bg); flex-shrink: 0; padding-bottom: var(--safe-bot); }
+.screen.with-nav { bottom: calc(56px + var(--safe-bot)); }
 .nav-btn { flex: 1; background: transparent; border: none; padding: 12px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .nav-btn.active { color: var(--accent); }
 .nav-icon { font-size: 18px; line-height: 1; }
@@ -385,8 +386,10 @@ let cardioSess = {running:false, startTime:null, timerInt:null, resistance:null}
 // ─── NAV ───
 const NAV_IDS = ['home','cardio','benchmarks','history'];
 function showTab(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.classList.remove('with-nav'); });
+  const screen = document.getElementById(id);
+  screen.classList.add('active');
+  screen.classList.add('with-nav');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const nb = document.getElementById('nav-'+id);
   if (nb) nb.classList.add('active');
@@ -397,7 +400,7 @@ function showTab(id) {
   if (id==='cardio') renderCardioLog();
 }
 function showOnlyScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.classList.remove('with-nav'); });
   document.getElementById(id).classList.add('active');
   document.getElementById('bottom-nav').style.display = 'none';
 }
