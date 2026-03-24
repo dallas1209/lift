@@ -221,6 +221,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .history-meta { display: flex; gap: 12px; flex-wrap: wrap; }
 .history-meta-item { font-size: 12px; color: var(--muted); }
 .history-meta-item strong { color: var(--text); font-weight: 600; }
+.history-delete { background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; padding: 3px 8px; cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.history-delete:active { background: rgba(255,69,69,0.15); border-color: var(--red); color: var(--red); }
 .empty-msg { text-align: center; color: var(--muted); font-size: 14px; margin-top: 50px; line-height: 1.6; }
 
 /* COMPLETE */
@@ -1048,13 +1050,19 @@ function renderHistory() {
   renderCalendar();
   const container=document.getElementById('history-list');
   if (!state.history.length) { container.innerHTML=`<div class="empty-msg">No sessions yet.<br>Complete your first workout to get started.</div>`; return; }
-  container.innerHTML = state.history.map(s=>{
+  container.innerHTML = state.history.map((s,idx)=>{
     const wk=WORKOUTS[s.day]||{};
     const date=new Date(s.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
     const m=Math.floor(s.duration/60), sec=s.duration%60;
     const vol=s.volume>=1000?(s.volume/1000).toFixed(1)+'k lbs':Math.round(s.volume)+' lbs';
     return `<div class="history-item">
-      <div class="history-top"><div class="history-day-badge">${wk.label||s.day}</div><div class="history-date">${date}</div></div>
+      <div class="history-top">
+        <div class="history-day-badge">${wk.label||s.day}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="history-date">${date}</div>
+          <button class="history-delete" onclick="deleteSession(${idx})">✕</button>
+        </div>
+      </div>
       <div class="history-workout-name">${wk.focus||'—'}</div>
       <div class="history-meta">
         <div class="history-meta-item"><strong>${m}:${sec.toString().padStart(2,'0')}</strong> duration</div>
@@ -1064,6 +1072,15 @@ function renderHistory() {
       </div>
     </div>`;
   }).join('');
+}
+
+function deleteSession(idx) {
+  if (!confirm('Delete this session?')) return;
+  state.history.splice(idx, 1);
+  // Recalculate lastDay from remaining history
+  state.lastDay = state.history.length ? state.history[0].day : null;
+  save();
+  renderHistory();
 }
 
 // ─── INIT ───
